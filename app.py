@@ -1,20 +1,49 @@
+import sys
+from pathlib import Path
+
+# ==================== FIX UNTUK STREAMLIT CLOUD ====================
+# Biar bisa import folder data_fetcher, scanner, dll
+root_path = str(Path(__file__).parent)
+sys.path.append(root_path)
+# ============================================================
+
 """
 app.py
 ─────────────────────────────────────────────────────────────────────────────
 Crypto Futures Momentum Scanner — Streamlit Dashboard
-
 Run: streamlit run app.py
 ─────────────────────────────────────────────────────────────────────────────
 """
+
 import time
 import threading
 from datetime import datetime, timezone
 from typing import Optional
-
 import pandas as pd
 import streamlit as st
 
 # ── Page config (MUST be first Streamlit call) ────────────────────────────────
+st.set_page_config(
+    page_title="Crypto Momentum Scanner",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+import config
+from data_fetcher.binance_rest import get_top_symbols, fetch_ohlcv, fetch_ticker_snapshot
+from data_fetcher.websocket_client import BinanceWebSocket, price_store
+from scanner.signal_engine import run_scan, SignalResult
+from alerts.telegram import send_signal_alert, send_scan_summary
+from ui.charts import (
+    candlestick_chart, macd_chart,
+    equity_curve_chart, score_bar_chart,
+)
+from indicators import (
+    add_moving_averages, add_bollinger_bands,
+    add_rsi, add_macd, add_atr, add_volume_indicators,
+)
+from utils.logger import log
 st.set_page_config(
     page_title="Crypto Momentum Scanner",
     page_icon="🚀",
