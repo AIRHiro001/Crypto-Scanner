@@ -26,7 +26,7 @@ from indicators import (
     check_rsi_bullish, check_macd,
     add_volume_indicators, check_volume_spike, check_obv_trend,
 )
-from utils.logger import log
+from logger import log
 
 
 # ── Data classes ──────────────────────────────────────────────────────────────
