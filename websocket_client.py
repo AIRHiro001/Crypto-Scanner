@@ -21,7 +21,7 @@ from typing import Optional
 import websockets
 
 import config
-from utils.logger import log
+from logger import log
 
 
 # ── Shared state (thread-safe via lock) ───────────────────────────────────────
