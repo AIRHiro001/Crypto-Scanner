@@ -15,7 +15,7 @@ import time
 from typing import TYPE_CHECKING
 
 import config
-from utils.logger import log
+from logger import log
 
 if TYPE_CHECKING:
     from scanner.signal_engine import SignalResult
