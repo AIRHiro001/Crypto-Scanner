@@ -22,8 +22,8 @@ from tenacity import (
 )
 
 import config
-from utils.logger import log
-from utils.rate_limiter import rate_limiter
+from logger import log
+from rate_limiter import rate_limiter
 
 
 # ── Exchange singleton ────────────────────────────────────────────────────────
