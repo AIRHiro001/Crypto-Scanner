@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-# ==================== FIX UNTUK STREAMLIT CLOUD ====================
+# ==================== FIX PATH UNTUK STREAMLIT CLOUD ====================
 root_path = str(Path(__file__).parent)
 sys.path.append(root_path)
 # ============================================================
@@ -13,12 +13,11 @@ Crypto Futures Momentum Scanner — Streamlit Dashboard
 import time
 import threading
 from datetime import datetime, timezone
-from typing import Optional
 
 import pandas as pd
 import streamlit as st
 
-# ── Page config (HARUS paling atas sebelum import lain) ─────────────────────
+# ── Page config (HARUS PALING ATAS) ────────────────────────────────
 st.set_page_config(
     page_title="Crypto Momentum Scanner",
     page_icon="🚀",
@@ -26,114 +25,96 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ====================== IMPORTS (Sudah Diperbaiki) ======================
+# ====================== IMPORTS (Semua dari root) ======================
 import config
 
-# Import langsung dari root (karena semua file berada di root)
 from binance_rest import get_top_symbols, fetch_ohlcv, fetch_ticker_snapshot
 from websocket_client import BinanceWebSocket, price_store
 from signal_engine import run_scan, SignalResult
 from telegram import send_signal_alert, send_scan_summary
 
-# UI dan Indicators
 from charts import (
-    candlestick_chart, 
-    macd_chart,
-    equity_curve_chart, 
-    score_bar_chart,
+    candlestick_chart, macd_chart,
+    equity_curve_chart, score_bar_chart,
 )
 
 from indicators import (
-    add_moving_averages, 
-    add_bollinger_bands,
-    add_rsi, 
-    add_macd, 
-    add_atr, 
-    add_volume_indicators,
+    add_moving_averages, add_bollinger_bands,
+    add_rsi, add_macd, add_atr, add_volume_indicators,
 )
 
-from utils.logger import log
-
-# =====================================================================
-
-# --- Variabel Global / Session State ---
-if "scan_running" not in st.session_state:
-    st.session_state.scan_running = False
-
-if "last_scan_time" not in st.session_state:
-    st.session_state.last_scan_time = None
+# Kalau logger.py ada di root
+from logger import log
 
 # =====================================================================
 
 st.title("🚀 Crypto Futures Momentum Scanner")
-st.markdown("**Real-time Momentum Scanner + Telegram Alert**")
+st.markdown("**Real-time Momentum + Telegram Alerts**")
 
 # Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
-    scan_interval = st.slider("Scan Interval (detik)", 30, 300, 60)
+    scan_interval = st.slider("Scan Interval (detik)", 30, 300, 60, help="Berapa detik sekali scan")
     min_score = st.slider("Minimum Signal Score", 50, 95, 75)
-    
+
     col1, col2 = st.columns(2)
     with col1:
         start_btn = st.button("▶️ Start Scanner", type="primary", use_container_width=True)
     with col2:
         stop_btn = st.button("⏹️ Stop Scanner", type="secondary", use_container_width=True)
 
-# Placeholder untuk log dan status
 status_placeholder = st.empty()
-log_placeholder = st.expander("📜 Log Scanner", expanded=False)
+log_placeholder = st.expander("📜 Scanner Log", expanded=True)
 
-# ====================== MAIN LOGIC ======================
+# Session State
+if "scan_running" not in st.session_state:
+    st.session_state.scan_running = False
+if "last_scan" not in st.session_state:
+    st.session_state.last_scan = None
+
 def run_scanner():
     while st.session_state.scan_running:
         try:
-            status_placeholder.info(f"🔄 Scanning... ({datetime.now(timezone.utc).strftime('%H:%M:%S UTC')})")
+            status_placeholder.info(f"🔄 Scanning at {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}")
             
             signals = run_scan(min_score=min_score)
             
             if signals:
                 for signal in signals:
                     send_signal_alert(signal)
-                    # Tampilkan di UI juga
-                
                 send_scan_summary(signals)
-            
-            st.session_state.last_scan_time = datetime.now(timezone.utc)
-            status_placeholder.success(f"✅ Scan selesai | Next scan dalam {scan_interval} detik")
+                
+            st.session_state.last_scan = datetime.now(timezone.utc)
+            status_placeholder.success(f"✅ Scan completed | Next scan in {scan_interval}s")
             
         except Exception as e:
-            log.error(f"Error during scan: {e}")
-            status_placeholder.error(f"❌ Error: {e}")
+            log.error(f"Scan error: {e}")
+            status_placeholder.error(f"Error: {e}")
         
         time.sleep(scan_interval)
 
-# Button Logic
-if start_btn:
-    if not st.session_state.scan_running:
-        st.session_state.scan_running = True
-        threading.Thread(target=run_scanner, daemon=True).start()
-        st.success("Scanner started!")
+# Button logic
+if start_btn and not st.session_state.scan_running:
+    st.session_state.scan_running = True
+    threading.Thread(target=run_scanner, daemon=True).start()
+    st.success("✅ Scanner started!")
 
 if stop_btn:
     st.session_state.scan_running = False
-    status_placeholder.warning("Scanner dihentikan.")
+    status_placeholder.warning("⏹️ Scanner stopped.")
 
-# Tampilkan last scan time
-if st.session_state.last_scan_time:
-    st.caption(f"Last scan: {st.session_state.last_scan_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+if st.session_state.last_scan:
+    st.caption(f"Last scan: {st.session_state.last_scan.strftime('%Y-%m-%d %H:%M:%S')}")
 
-# ====================== TABS ======================
-tab1, tab2, tab3 = st.tabs(["📊 Live Signals", "📈 Charts", "⚙️ Configuration"])
+# Tabs
+tab1, tab2, tab3 = st.tabs(["📊 Live Signals", "📈 Charts", "⚙️ More"])
 
 with tab1:
-    st.info("Live signals akan muncul di sini...")
-
+    st.info("Live signals akan muncul di sini setelah scanner berjalan.")
 with tab2:
-    st.info("Chart visualization akan muncul di sini...")
-
+    st.info("Charts akan muncul di sini.")
 with tab3:
-    st.write("Configuration & Backtesting comming soon...")
+    st.write("Backtesting & advanced config coming soon...")
 
 st.set_page_config(
     page_title="Crypto Momentum Scanner",
